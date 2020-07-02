@@ -2,7 +2,7 @@ from pathlib import Path
 
 CSV_ENCODING = "ISO-8859-1"
 RESULTS_FOLDER = Path('results')
-SQLITE_PATH = RESULTS_FOLDER / "stat.db")
+SQLITE_PATH = RESULTS_FOLDER / "stat.db"
 DATABASE_URL = f"sqlite:///{SQLITE_PATH}"
 FOLDER_WITH_DATABASES =  Path("..")
 CHUNCK_SIZE_ENCODING_CHECK = 5000

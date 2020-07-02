@@ -8,9 +8,13 @@ from tqdm import tqdm
 import config
 from database import *
 import shutil
+import os
 
-
-shutil.rmtree(config.RESULTS_FOLDER)
+try:
+    shutil.rmtree(config.RESULTS_FOLDER)
+except FileNotFoundError:
+    pass
+os.mkdir(config.RESULTS_FOLDER)
 init_db()
 
 maxInt = sys.maxsize
