@@ -41,33 +41,51 @@ for dir_ in config.FOLDER_WITH_DATABASES.iterdir():
     for entry in dir_.iterdir():
         if not entry.is_file() or not entry.suffix == ".csv":
             continue
-        csv_files.append(entry.absolute())
+        item = {'dbname': entry.parent.name, 'path': entry.absolute()}
+        csv_files.append(item)
+csv_files.sort(key=lambda x: x['dbname'])
 
 # Analisar os csvs
 print("Tentando fazer parsing dos arquivos CSV")
 pbar = tqdm(csv_files)
-for entry in pbar:
+
+def new_database(name):
+    db_obj = DatabaseObj()
+    db_obj.name = name
+    db_obj.csv_folder = str((config.FOLDER_WITH_DATABASES / name).absolute())
+    db_session.add(db_obj)
+    db_session.commit()
+    return db_obj
+
+db_obj = new_database(csv_files[0]['dbname'])
+for item in pbar:
+    if item['dbname'] != db_obj.name:
+        db_session.commit()
+        db_obj = new_database(item['dbname'])
+    entry = item['path']
     stat = {}
+    csvfile = CsvFile()
+    csvfile.database_obj = db_obj
+    csvfile.path = str(entry.absolute())
     try:
-        with entry.open("r", newline='', encoding=config.CSV_ENCODING) as csvfile:
-            reader = csv.reader(fix_nulls(csvfile), delimiter=",")
+        with entry.open("r", newline='', encoding=config.CSV_ENCODING) as f:
+            reader = csv.reader(fix_nulls(f), delimiter=config.SEPARATOR)
             for i, row in enumerate(reader):
                 n = len(row)
                 try:
                     stat[n] += 1
                 except KeyError:
-                    stat[n] = 1
-        # stats[entry.name]= stat
+                    stat[n] = 1    
+        csvfile.set_stats_separator(stat)
         n = len(stat.keys())
         if n == 1:
-            file_ = NormalFile()
+            csvfile.state = "normal"
         else:
-            file_ = SeparatorProblemFile()
-            file_.n = n
+            csvfile.state = "separator_problem"
+            csvfile.nn_columns = n
     except UnicodeDecodeError:
-        file_ = EncodingProblemFile()
-    file_.path =  str(entry.absolute())
-    db_session.add(file_)
+        csvfile.state = "encoding_problem"
+    db_session.add(csvfile)
     pbar.update(1)
 db_session.commit()
 
